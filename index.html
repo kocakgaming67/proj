@@ -114,7 +114,7 @@
     </div>
   </div>
 
-  <script>
+    <script>
     // --- Local Storage Management ---
     let jobs = JSON.parse(localStorage.getItem('dc_jobs')) || [];
     let isRunning = false;
@@ -157,7 +157,7 @@
         if(isRunning) {
             const timeDiff = Math.max(0, job.nextRunTime - Date.now());
             const minsLeft = Math.ceil(timeDiff / 60000);
-            nextRunText = `Next in ~${minsLeft} min(s)`;
+            nextRunText = timeDiff <= 1000 ? " Sending now..." : `Next in ~${minsLeft} min(s)`;
         }
 
         div.innerHTML = `
@@ -170,7 +170,7 @@
             <div class="flex items-center gap-4 text-xs text-gray-500">
               <span>⏱️ Every ${job.interval} min</span>
               ${job.slowmode ? '<span>🔍 Slowmode ON</span>' : ''}
-              <span class="text-purple-400">${nextRunText}</span>
+              <span class="text-purple-400 font-semibold">${nextRunText}</span>
             </div>
           </div>
           <button onclick="deleteJob(${index})" class="ml-4 text-gray-400 hover:text-red-400 transition-colors">🗑️</button>
@@ -179,7 +179,7 @@
       });
     }
 
-    // --- Add & Delete Job ---
+    // --- Add Job ---
     document.getElementById('post-form').addEventListener('submit', (e) => {
       e.preventDefault();
       
@@ -187,9 +187,10 @@
         name: document.getElementById('input-post-name').value,
         channelId: document.getElementById('input-channel-id').value,
         content: document.getElementById('input-content').value,
-        interval: parseInt(document.getElementById('input-interval').value),
+        interval: parseInt(document.getElementById('input-interval').value) || 1,
         slowmode: document.getElementById('input-slowmode').checked,
-        nextRunTime: Date.now() + (Math.random() * 5000) // First run in 0-5 seconds
+        // Bikin nextRunTime jadi SEKARANG JUGA biar langsung nembak
+        nextRunTime: Date.now() 
       };
 
       jobs.push(newJob);
@@ -197,6 +198,9 @@
       e.target.reset();
       renderJobs();
       addLog(`Added new job: ${newJob.name}`);
+      
+      // Paksa langsung ngecek kalau bot lagi jalan
+      if(isRunning) checkJobs();
     });
 
     window.deleteJob = function(index) {
@@ -209,45 +213,51 @@
 
     // --- Bot Engine (The Magic) ---
     async function sendMessage(job) {
-        const token = localStorage.getItem('dc_token');
+        const token = document.getElementById('global-token').value || localStorage.getItem('dc_token');
         if(!token) {
-            addLog("ERROR: Discord Token is empty!", "error");
+            addLog(`ERROR: Discord Token is empty for ${job.name}!`, "error");
             toggleBot(); // Stop bot
             return;
         }
 
-        addLog(`Sending message to ${job.name} (Ch: ${job.channelId})...`);
+        addLog(`🚀 Sending message to [${job.name}]...`);
 
         try {
-            // FIRE TO OUR VERCEL PROXY
+            // Tembak ke Vercel Proxy
             const response = await fetch('/api/proxy', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    token: token,
-                    channelId: job.channelId,
+                    token: token.trim(),
+                    channelId: job.channelId.trim(),
                     content: job.content
                 })
             });
 
+            // Handle response kalau endpoint belum ada/error
+            if (!response.ok && response.status === 404) {
+                addLog(`API Error: /api/proxy not found! Vercel belum selesai deploy?`, "error");
+                return;
+            }
+
             const result = await response.json();
 
             if (response.ok) {
-                addLog(`Success -> ${job.name}`, "success");
+                addLog(` Success -> [${job.name}]`, "success");
             } else {
-                addLog(`Failed -> ${job.name}: ${result.error || 'Unknown error'}`, "error");
+                addLog(` Failed -> [${job.name}]: ${result.error || 'Unknown error'}`, "error");
                 
-                // If Rate Limited by Discord (Slowmode / Spam)
+                // Kalau kena limit, tambah delay penalti
                 if(result.retry_after) {
                     const waitSecs = result.retry_after;
-                    addLog(`Rate limited! Adding ${waitSecs}s penalty to ${job.name}`, "error");
-                    // Add penalty to next run
+                    addLog(` Rate limited! Pausing ${job.name} for ${waitSecs}s`, "error");
                     job.nextRunTime += (waitSecs * 1000);
                 }
             }
 
         } catch (err) {
-            addLog(`Network Error: Cannot reach Vercel API`, "error");
+            addLog(` Network Error: Cannot reach Vercel API. Are you offline?`, "error");
+            console.error(err);
         }
     }
 
@@ -259,15 +269,16 @@
 
         jobs.forEach(job => {
             if (now >= job.nextRunTime) {
-                // Time to send!
-                sendMessage(job);
-                
-                // Humanize Delay: base interval + random 0 to 60 seconds
-                const randomDelayMs = Math.floor(Math.random() * 60000);
+                // Update timer ke depan BIAR GAK SPAM (Interval + Randomizer 0-15 dtk)
                 const intervalMs = (job.interval * 60000);
-                
+                const randomDelayMs = Math.floor(Math.random() * 15000);
                 job.nextRunTime = now + intervalMs + randomDelayMs;
                 changed = true;
+                
+                // Eksekusi pengiriman
+                sendMessage(job).then(() => {
+                    renderJobs(); // Update text "Next in..." pas udah kelar
+                });
             }
         });
 
@@ -288,7 +299,7 @@
             isRunning = false;
             clearInterval(mainLoopInterval);
             
-            btn.innerHTML = '▶ START BOT (Looping)';
+            btn.innerHTML = ' START BOT (Looping)';
             btn.className = 'btn-primary w-full py-3 rounded-lg text-white font-bold';
             
             statusText.textContent = 'Stopped';
@@ -300,14 +311,21 @@
         } else {
             // START BOT
             if(jobs.length === 0) return alert("Please add at least 1 job first!");
-            if(!localStorage.getItem('dc_token')) return alert("Please enter your Discord Token!");
+            const currentToken = document.getElementById('global-token').value;
+            if(!currentToken) return alert("Please enter your Discord Token!");
+            
+            // Save token just in case
+            localStorage.setItem('dc_token', currentToken);
 
             isRunning = true;
             
-            // Loop checker every 5 seconds
-            mainLoopInterval = setInterval(checkJobs, 5000);
+            // Paksa ngecek langsung 1x tanpa nunggu 5 detik
+            checkJobs();
             
-            btn.innerHTML = '⏹ STOP BOT';
+            // Loop checker tiap 3 detik (biar lebih responsif)
+            mainLoopInterval = setInterval(checkJobs, 3000);
+            
+            btn.innerHTML = ' STOP BOT';
             btn.className = 'btn-danger w-full py-3 rounded-lg text-white font-bold';
             
             statusText.textContent = 'Active 24/7';
@@ -315,7 +333,6 @@
             statusDot.classList.replace('bg-gray-400', 'bg-green-400');
 
             addLog("Bot Engine Started! Keep this tab open.", "success");
-            renderJobs();
         }
     }
 
