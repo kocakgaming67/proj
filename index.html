@@ -1,0 +1,328 @@
+<!doctype html>
+<html lang="en" class="h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AutoPost DC - Tools</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    * { font-family: 'Outfit', sans-serif; }
+    .gradient-bg { background: linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 50%, #0f0f1a 100%); }
+    .card-gradient { background: linear-gradient(145deg, rgba(30, 30, 50, 0.8) 0%, rgba(20, 20, 35, 0.9) 100%); border: 1px solid rgba(139, 92, 246, 0.2); }
+    .card-gradient:hover { border-color: rgba(139, 92, 246, 0.5); }
+    .btn-primary { background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%); transition: all 0.3s ease; }
+    .btn-primary:hover { background: linear-gradient(135deg, #a78bfa 0%, #8b5cf6 100%); box-shadow: 0 10px 40px rgba(139, 92, 246, 0.4); }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-danger { background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%); transition: all 0.3s ease; }
+    .btn-danger:hover { background: linear-gradient(135deg, #fca5a5 0%, #ef4444 100%); box-shadow: 0 10px 40px rgba(239, 68, 68, 0.4); }
+    body { box-sizing: border-box; }
+  </style>
+</head>
+<body class="h-full">
+  <div class="gradient-bg w-full h-full overflow-auto">
+    <div class="relative z-10">
+      
+      <!-- Header -->
+      <header class="border-b border-gray-800/50 px-6 py-5">
+        <div class="max-w-7xl mx-auto flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 bg-gradient-to-br from-purple-500 to-violet-600 rounded-xl flex items-center justify-center"><span class="text-white text-xl">🚀</span></div>
+            <h1 class="text-white font-bold text-2xl">AutoPost DC Tools</h1>
+          </div>
+          <div class="text-right flex items-center gap-4">
+            <!-- Global Discord Token Input -->
+            <input type="password" id="global-token" placeholder="Paste Discord Token Here..." class="bg-gray-900/50 border border-gray-700 rounded-lg px-4 py-2 text-white text-sm focus:outline-none focus:border-purple-500 w-64" required>
+            <p id="bot-status" class="text-gray-400 text-sm font-semibold flex items-center gap-2"><span class="w-2 h-2 bg-gray-400 rounded-full status-dot"></span> <span class="status-text">Stopped</span></p>
+          </div>
+        </div>
+      </header>
+
+      <main class="max-w-7xl mx-auto px-6 py-8">
+        <div class="grid lg:grid-cols-3 gap-8">
+          
+          <!-- Create Post Form -->
+          <div class="lg:col-span-1">
+            <div class="card-gradient rounded-2xl p-6 mb-6">
+               <h2 class="text-white font-bold text-xl mb-4"> Bot Control</h2>
+               <button id="toggle-bot-btn" class="btn-primary w-full py-3 rounded-lg text-white font-bold">▶️ START BOT (Looping)</button>
+               <p class="text-xs text-gray-400 mt-2 text-center">Keep this tab open to run 24/7</p>
+            </div>
+
+            <div class="card-gradient rounded-2xl p-6">
+              <h2 class="text-white font-bold text-xl mb-6"> Add Job</h2>
+              <form id="post-form" class="space-y-4">
+                
+                <div>
+                  <label class="text-gray-300 text-sm font-semibold block mb-2">Job Name</label>
+                  <input type="text" id="input-post-name" placeholder="E.g., Morning Promo" class="w-full bg-gray-900/50 border border-gray-700 rounded-lg px-4 py-2.5 text-white focus:border-purple-500" required>
+                </div>
+                
+                <div>
+                  <label class="text-gray-300 text-sm font-semibold block mb-2">Channel ID</label>
+                  <input type="text" id="input-channel-id" placeholder="123456789012345678" class="w-full bg-gray-900/50 border border-gray-700 rounded-lg px-4 py-2.5 text-white focus:border-purple-500" required>
+                </div>
+
+                <div>
+                  <label class="text-gray-300 text-sm font-semibold block mb-2">Post Content</label>
+                  <textarea id="input-content" placeholder="Type your message..." class="w-full bg-gray-900/50 border border-gray-700 rounded-lg px-4 py-2.5 text-white focus:border-purple-500 h-24 resize-none" required></textarea>
+                </div>
+
+                <div>
+                  <label class="text-gray-300 text-sm font-semibold block mb-2">Interval (Minutes)</label>
+                  <input type="number" id="input-interval" min="1" value="60" class="w-full bg-gray-900/50 border border-gray-700 rounded-lg px-4 py-2.5 text-white focus:border-purple-500" required>
+                </div>
+
+                <div class="flex items-center gap-3 p-3 bg-gray-900/30 rounded-lg">
+                  <input type="checkbox" id="input-slowmode" class="w-5 h-5 accent-purple-500 rounded">
+                  <label for="input-slowmode" class="text-gray-300 text-sm font-medium flex-1 cursor-pointer">Detect Slowmode</label>
+                </div>
+
+                <button type="submit" class="btn-primary w-full py-3 rounded-lg text-white font-bold mt-6">✨ Save Job</button>
+              </form>
+            </div>
+          </div>
+
+          <!-- Posts List -->
+          <div class="lg:col-span-2">
+            <div class="card-gradient rounded-2xl p-6">
+              <div class="flex items-center justify-between mb-6">
+                <h2 class="text-white font-bold text-xl"> Active Jobs</h2>
+                <span id="post-count" class="bg-purple-500/20 border border-purple-500/50 text-purple-300 px-3 py-1 rounded-full text-sm font-semibold">0 jobs</span>
+              </div>
+              
+              <div id="empty-state" class="text-center py-12">
+                <p class="text-gray-500 text-lg">No jobs yet. Create one to get started! 🎉</p>
+              </div>
+              
+              <div id="posts-container" class="space-y-3"></div>
+            </div>
+            
+            <!-- Log Console -->
+            <div class="card-gradient rounded-2xl p-6 mt-6 h-64 overflow-y-auto">
+                <h2 class="text-white font-bold text-lg mb-4"> Activity Logs</h2>
+                <div id="log-container" class="space-y-1 font-mono text-xs text-gray-400">
+                    <div>[System] Ready to start...</div>
+                </div>
+            </div>
+
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script>
+    // --- Local Storage Management ---
+    let jobs = JSON.parse(localStorage.getItem('dc_jobs')) || [];
+    let isRunning = false;
+    let mainLoopInterval = null;
+
+    // Load Token
+    const tokenInput = document.getElementById('global-token');
+    tokenInput.value = localStorage.getItem('dc_token') || '';
+    tokenInput.addEventListener('input', (e) => localStorage.setItem('dc_token', e.target.value));
+
+    // Logging Function
+    function addLog(msg, type = 'info') {
+        const logBox = document.getElementById('log-container');
+        const time = new Date().toLocaleTimeString();
+        let color = type === 'error' ? 'text-red-400' : type === 'success' ? 'text-green-400' : 'text-gray-300';
+        logBox.innerHTML += `<div class="${color}">[${time}] ${msg}</div>`;
+        logBox.scrollTop = logBox.scrollHeight;
+    }
+
+    // --- Render Jobs ---
+    function renderJobs() {
+      const container = document.getElementById('posts-container');
+      const emptyState = document.getElementById('empty-state');
+      document.getElementById('post-count').textContent = `${jobs.length} jobs`;
+
+      if (jobs.length === 0) {
+        container.innerHTML = '';
+        emptyState.style.display = 'block';
+        return;
+      }
+      emptyState.style.display = 'none';
+      container.innerHTML = '';
+
+      jobs.forEach((job, index) => {
+        const div = document.createElement('div');
+        div.className = 'card-gradient rounded-xl p-4 flex items-start justify-between border-l-4 border-l-purple-500';
+        
+        // Calculate next run time
+        let nextRunText = "Waiting for bot to start...";
+        if(isRunning) {
+            const timeDiff = Math.max(0, job.nextRunTime - Date.now());
+            const minsLeft = Math.ceil(timeDiff / 60000);
+            nextRunText = `Next in ~${minsLeft} min(s)`;
+        }
+
+        div.innerHTML = `
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2 mb-2">
+              <h3 class="text-white font-semibold truncate">${job.name}</h3>
+              <span class="bg-gray-800 text-xs px-2 py-1 rounded-full text-gray-300">ID: ${job.channelId}</span>
+            </div>
+            <p class="text-gray-400 text-sm mb-3 line-clamp-1">${job.content}</p>
+            <div class="flex items-center gap-4 text-xs text-gray-500">
+              <span>⏱️ Every ${job.interval} min</span>
+              ${job.slowmode ? '<span>🔍 Slowmode ON</span>' : ''}
+              <span class="text-purple-400">${nextRunText}</span>
+            </div>
+          </div>
+          <button onclick="deleteJob(${index})" class="ml-4 text-gray-400 hover:text-red-400 transition-colors">🗑️</button>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    // --- Add & Delete Job ---
+    document.getElementById('post-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      
+      const newJob = {
+        name: document.getElementById('input-post-name').value,
+        channelId: document.getElementById('input-channel-id').value,
+        content: document.getElementById('input-content').value,
+        interval: parseInt(document.getElementById('input-interval').value),
+        slowmode: document.getElementById('input-slowmode').checked,
+        nextRunTime: Date.now() + (Math.random() * 5000) // First run in 0-5 seconds
+      };
+
+      jobs.push(newJob);
+      localStorage.setItem('dc_jobs', JSON.stringify(jobs));
+      e.target.reset();
+      renderJobs();
+      addLog(`Added new job: ${newJob.name}`);
+    });
+
+    window.deleteJob = function(index) {
+      if(confirm('Delete this job?')) {
+        jobs.splice(index, 1);
+        localStorage.setItem('dc_jobs', JSON.stringify(jobs));
+        renderJobs();
+      }
+    }
+
+    // --- Bot Engine (The Magic) ---
+    async function sendMessage(job) {
+        const token = localStorage.getItem('dc_token');
+        if(!token) {
+            addLog("ERROR: Discord Token is empty!", "error");
+            toggleBot(); // Stop bot
+            return;
+        }
+
+        addLog(`Sending message to ${job.name} (Ch: ${job.channelId})...`);
+
+        try {
+            // FIRE TO OUR VERCEL PROXY
+            const response = await fetch('/api/proxy', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    token: token,
+                    channelId: job.channelId,
+                    content: job.content
+                })
+            });
+
+            const result = await response.json();
+
+            if (response.ok) {
+                addLog(`Success -> ${job.name}`, "success");
+            } else {
+                addLog(`Failed -> ${job.name}: ${result.error || 'Unknown error'}`, "error");
+                
+                // If Rate Limited by Discord (Slowmode / Spam)
+                if(result.retry_after) {
+                    const waitSecs = result.retry_after;
+                    addLog(`Rate limited! Adding ${waitSecs}s penalty to ${job.name}`, "error");
+                    // Add penalty to next run
+                    job.nextRunTime += (waitSecs * 1000);
+                }
+            }
+
+        } catch (err) {
+            addLog(`Network Error: Cannot reach Vercel API`, "error");
+        }
+    }
+
+    function checkJobs() {
+        if(!isRunning) return;
+
+        const now = Date.now();
+        let changed = false;
+
+        jobs.forEach(job => {
+            if (now >= job.nextRunTime) {
+                // Time to send!
+                sendMessage(job);
+                
+                // Humanize Delay: base interval + random 0 to 60 seconds
+                const randomDelayMs = Math.floor(Math.random() * 60000);
+                const intervalMs = (job.interval * 60000);
+                
+                job.nextRunTime = now + intervalMs + randomDelayMs;
+                changed = true;
+            }
+        });
+
+        if(changed) {
+            localStorage.setItem('dc_jobs', JSON.stringify(jobs));
+            renderJobs();
+        }
+    }
+
+    // --- Toggle Bot On/Off ---
+    function toggleBot() {
+        const btn = document.getElementById('toggle-bot-btn');
+        const statusText = document.querySelector('.status-text');
+        const statusDot = document.querySelector('.status-dot');
+
+        if(isRunning) {
+            // STOP BOT
+            isRunning = false;
+            clearInterval(mainLoopInterval);
+            
+            btn.innerHTML = '▶ START BOT (Looping)';
+            btn.className = 'btn-primary w-full py-3 rounded-lg text-white font-bold';
+            
+            statusText.textContent = 'Stopped';
+            statusText.classList.replace('text-green-400', 'text-gray-400');
+            statusDot.classList.replace('bg-green-400', 'bg-gray-400');
+            
+            addLog("Bot stopped by user.");
+            renderJobs();
+        } else {
+            // START BOT
+            if(jobs.length === 0) return alert("Please add at least 1 job first!");
+            if(!localStorage.getItem('dc_token')) return alert("Please enter your Discord Token!");
+
+            isRunning = true;
+            
+            // Loop checker every 5 seconds
+            mainLoopInterval = setInterval(checkJobs, 5000);
+            
+            btn.innerHTML = '⏹ STOP BOT';
+            btn.className = 'btn-danger w-full py-3 rounded-lg text-white font-bold';
+            
+            statusText.textContent = 'Active 24/7';
+            statusText.classList.replace('text-gray-400', 'text-green-400');
+            statusDot.classList.replace('bg-gray-400', 'bg-green-400');
+
+            addLog("Bot Engine Started! Keep this tab open.", "success");
+            renderJobs();
+        }
+    }
+
+    document.getElementById('toggle-bot-btn').addEventListener('click', toggleBot);
+
+    // Initial Render
+    renderJobs();
+  </script>
+</body>
+</html>
